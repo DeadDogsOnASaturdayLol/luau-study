@@ -1,0 +1,544 @@
+name: Apply v39
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-v39.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply v39 patch
+        shell: bash
+        run: |
+          git apply <<'PATCH'
+          diff --git a/index.html b/index.html
+          index 68fa35f..79fa101 100644
+          --- a/index.html
+          +++ b/index.html
+          @@ -2933,7 +2933,9 @@ html[data-setting-indent-guides="on"] .editor-shell .indent-guides{
+               box-shadow:0 2px 8px rgba(0,0,0,.16)!important;
+               backdrop-filter:blur(5px)!important;
+               font:800 10px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+          -    pointer-events:none!important;
+          +    pointer-events:auto!important;
+          +    touch-action:manipulation!important;
+          +    -webkit-tap-highlight-color:transparent!important;
+             }
+           
+             .inline-ghost-suggestion:active .mobile-suggestion-accept{
+          @@ -2943,6 +2945,203 @@ html[data-setting-indent-guides="on"] .editor-shell .indent-guides{
+             }
+           }
+           
+          +
+          +
+          +/* ===== v39 QUICK SEARCH ===== */
+          +.quick-search{
+          +  position:relative;
+          +  margin:0 0 7px;
+          +  z-index:70;
+          +}
+          +
+          +.quick-search-toggle{
+          +  display:inline-flex;
+          +  align-items:center;
+          +  gap:5px;
+          +  min-height:26px;
+          +  padding:4px 8px;
+          +  border:1px solid rgba(135,158,190,.20);
+          +  border-radius:7px;
+          +  background:rgba(24,31,42,.72);
+          +  color:#aab8cb;
+          +  font:800 9px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+          +  cursor:pointer;
+          +  -webkit-tap-highlight-color:transparent;
+          +  touch-action:manipulation;
+          +}
+          +
+          +.quick-search-toggle::before{
+          +  content:"⌕";
+          +  color:#8fa6c3;
+          +  font:900 13px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+          +}
+          +
+          +.quick-search-toggle[aria-expanded="true"]{
+          +  border-color:rgba(145,178,218,.32);
+          +  background:rgba(33,43,57,.86);
+          +  color:#d6e1ef;
+          +}
+          +
+          +.quick-search-panel{
+          +  margin-top:6px;
+          +  padding:7px;
+          +  border:1px solid rgba(135,158,190,.18);
+          +  border-radius:10px;
+          +  background:rgba(14,19,27,.94);
+          +  box-shadow:0 8px 25px rgba(0,0,0,.22);
+          +  backdrop-filter:blur(10px);
+          +  -webkit-backdrop-filter:blur(10px);
+          +}
+          +
+          +.quick-search-panel[hidden]{
+          +  display:none!important;
+          +}
+          +
+          +.quick-search-row{
+          +  display:flex;
+          +  align-items:center;
+          +  gap:5px;
+          +}
+          +
+          +.quick-search-input{
+          +  flex:1 1 auto;
+          +  min-width:0;
+          +  height:34px;
+          +  box-sizing:border-box;
+          +  border:1px solid rgba(135,158,190,.20);
+          +  border-radius:8px;
+          +  outline:0;
+          +  background:#101721;
+          +  color:#dbe4f1;
+          +  padding:7px 9px;
+          +  font:11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+          +  -webkit-appearance:none;
+          +}
+          +
+          +.quick-search-input:focus{
+          +  border-color:rgba(135,178,228,.58);
+          +  box-shadow:0 0 0 2px rgba(135,178,228,.08);
+          +}
+          +
+          +.quick-search-input::placeholder{
+          +  color:#64748a;
+          +}
+          +
+          +.quick-search-close{
+          +  flex:0 0 34px;
+          +  width:34px;
+          +  height:34px;
+          +  padding:0;
+          +  border:1px solid rgba(135,158,190,.18);
+          +  border-radius:8px;
+          +  background:#171f2a;
+          +  color:#8e9db1;
+          +  font:800 15px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+          +  cursor:pointer;
+          +}
+          +
+          +.quick-search-status{
+          +  min-height:14px;
+          +  margin:5px 2px 3px;
+          +  color:#718198;
+          +  font-size:9px;
+          +}
+          +
+          +.quick-search-results{
+          +  display:grid;
+          +  gap:4px;
+          +  max-height:260px;
+          +  overflow:auto;
+          +  overscroll-behavior:contain;
+          +  -webkit-overflow-scrolling:touch;
+          +}
+          +
+          +.quick-search-result{
+          +  overflow:hidden;
+          +  border:1px solid rgba(135,158,190,.12);
+          +  border-radius:8px;
+          +  background:rgba(21,28,38,.72);
+          +}
+          +
+          +.quick-search-result-head{
+          +  display:grid;
+          +  grid-template-columns:auto minmax(0,1fr);
+          +  align-items:center;
+          +  gap:7px;
+          +  width:100%;
+          +  min-height:34px;
+          +  padding:6px 8px;
+          +  border:0;
+          +  background:transparent;
+          +  color:#d4dfed;
+          +  text-align:left;
+          +  cursor:pointer;
+          +}
+          +
+          +.quick-search-category{
+          +  display:inline-flex;
+          +  align-items:center;
+          +  min-height:17px;
+          +  padding:2px 5px;
+          +  border:1px solid rgba(137,164,199,.16);
+          +  border-radius:5px;
+          +  background:rgba(98,120,148,.08);
+          +  color:#8297b2;
+          +  font:800 8px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+          +  white-space:nowrap;
+          +}
+          +
+          +.quick-search-title{
+          +  min-width:0;
+          +  overflow:hidden;
+          +  text-overflow:ellipsis;
+          +  white-space:nowrap;
+          +  font-size:10px;
+          +  font-weight:800;
+          +}
+          +
+          +.quick-search-result[open] .quick-search-result-head{
+          +  background:rgba(54,70,94,.24);
+          +}
+          +
+          +.quick-search-source{
+          +  margin:0;
+          +  padding:7px 8px 9px;
+          +  border-top:1px solid rgba(135,158,190,.10);
+          +  color:#aebdce;
+          +  background:rgba(7,11,16,.30);
+          +  font:10px/1.46 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+          +  white-space:pre-wrap;
+          +  overflow-wrap:anywhere;
+          +}
+          +
+          +.quick-search-empty{
+          +  padding:10px 8px;
+          +  color:#748399;
+          +  text-align:center;
+          +  font-size:10px;
+          +}
+          +
+          +@media (max-width:600px){
+          +  .quick-search{
+          +    margin-bottom:6px;
+          +  }
+          +
+          +  .quick-search-toggle{
+          +    min-height:28px;
+          +    font-size:9px;
+          +  }
+          +
+          +  .quick-search-input{
+          +    /* Prevent iOS Safari from zooming when focusing an input. */
+          +    font-size:16px;
+          +  }
+          +
+          +  .quick-search-results{
+          +    max-height:230px;
+          +  }
+          +}
+          +
+           </style>
+           </head>
+           <body>
+          @@ -21638,6 +21837,40 @@ document.addEventListener("luau:round-rendered",function(e){
+             },true);
+           
+             // Delegated controls survive randomized-round DOM replacement.
+          +  document.addEventListener("pointerdown",function(e){
+          +    const suggestion=e.target.closest?.(".inline-ghost-suggestion");
+          +    if(!suggestion) return;
+          +
+          +    const coarsePointer=
+          +      e.pointerType==="touch" ||
+          +      e.pointerType==="pen" ||
+          +      window.matchMedia?.("(hover: none) and (pointer: coarse)")?.matches;
+          +
+          +    if(!coarsePointer) return;
+          +
+          +    e.preventDefault();
+          +    e.stopPropagation();
+          +    if(typeof e.stopImmediatePropagation==="function"){
+          +      e.stopImmediatePropagation();
+          +    }
+          +
+          +    const shell=suggestion.closest(".editor-shell");
+          +    const el=shell?.querySelector(".code-editor");
+          +
+          +    if(el){
+          +      const index=Number(suggestion.dataset.suggestionIndex);
+          +      const accepted=applySuggestion(el,index);
+          +
+          +      try{
+          +        window.__luauDebugConsole?.log?.("MOBILE SUGGESTION TAP",{
+          +          index,
+          +          accepted:accepted!==false,
+          +          text:suggestion.querySelector(".inline-ghost-text")?.textContent||""
+          +        });
+          +      }catch(_){}
+          +    }
+          +  },true);
+          +
+             document.addEventListener("click",function(e){
+               const suggestionClose=e.target.closest && e.target.closest(".suggestions-close");
+               if(suggestionClose){
+          @@ -21702,7 +21935,253 @@ document.addEventListener("luau:round-rendered",function(e){
+               }
+             });
+           
+          +  let quickSearchIndexCache=null;
+          +  const quickSearchInstalled=new WeakSet();
+          +
+          +  function normalizeQuickSearch(value){
+          +    return (value||"")
+          +      .toLowerCase()
+          +      .replace(/\s+/g," ")
+          +      .trim();
+          +  }
+          +
+          +  function buildQuickSearchIndex(){
+          +    if(quickSearchIndexCache) return quickSearchIndexCache;
+          +
+          +    const sections=[
+          +      {selector:".page-luau",category:"Luau"},
+          +      {selector:".page-events",category:"Events"},
+          +      {selector:".page-scripts",category:"Script Types"},
+          +      {selector:".page-apis",category:"Roblox APIs"}
+          +    ];
+          +
+          +    const results=[];
+          +    const seen=new Set();
+          +
+          +    for(const section of sections){
+          +      const page=document.querySelector(section.selector);
+          +      if(!page) continue;
+          +
+          +      for(const card of page.querySelectorAll(".card")){
+          +        const summary=card.querySelector("summary");
+          +        const titleNode=summary?.querySelector("b");
+          +        const pre=card.querySelector("pre");
+          +
+          +        const title=(titleNode?.textContent || summary?.textContent || "Reference").trim();
+          +        const source=(pre?.textContent || "").trim();
+          +        const searchText=normalizeQuickSearch(
+          +          title+" "+
+          +          (summary?.textContent||"")+" "+
+          +          source
+          +        );
+          +
+          +        const key=section.category+"|"+title+"|"+source;
+          +        if(seen.has(key)) continue;
+          +        seen.add(key);
+          +
+          +        results.push({
+          +          category:section.category,
+          +          title,
+          +          source,
+          +          searchText
+          +        });
+          +      }
+          +    }
+          +
+          +    quickSearchIndexCache=results;
+          +    return results;
+          +  }
+          +
+          +  function quickSearchScore(item,terms,whole){
+          +    let score=0;
+          +    const title=normalizeQuickSearch(item.title);
+          +    const category=normalizeQuickSearch(item.category);
+          +
+          +    if(title===whole) score+=1000;
+          +    if(title.startsWith(whole)) score+=500;
+          +    if(title.includes(whole)) score+=260;
+          +    if(category.includes(whole)) score+=100;
+          +
+          +    for(const term of terms){
+          +      if(title===term) score+=180;
+          +      else if(title.startsWith(term)) score+=100;
+          +      else if(title.includes(term)) score+=65;
+          +
+          +      if(item.searchText.includes(term)) score+=15;
+          +      else return -1;
+          +    }
+          +
+          +    return score;
+          +  }
+          +
+          +  function renderQuickSearch(widget){
+          +    const input=widget.querySelector(".quick-search-input");
+          +    const status=widget.querySelector(".quick-search-status");
+          +    const resultsEl=widget.querySelector(".quick-search-results");
+          +    if(!input || !status || !resultsEl) return;
+          +
+          +    const q=normalizeQuickSearch(input.value);
+          +    resultsEl.replaceChildren();
+          +
+          +    if(!q){
+          +      status.textContent="Search Luau, Events, Script Types, and Roblox APIs.";
+          +      const empty=document.createElement("div");
+          +      empty.className="quick-search-empty";
+          +      empty.textContent="Type something to search the reference.";
+          +      resultsEl.appendChild(empty);
+          +      return;
+          +    }
+          +
+          +    const terms=q.split(" ").filter(Boolean);
+          +    const matches=buildQuickSearchIndex()
+          +      .map(item=>({item,score:quickSearchScore(item,terms,q)}))
+          +      .filter(entry=>entry.score>=0)
+          +      .sort((a,b)=>b.score-a.score || a.item.title.localeCompare(b.item.title))
+          +      .slice(0,12);
+          +
+          +    status.textContent=
+          +      matches.length+
+          +      (matches.length===1 ? " source" : " sources")+
+          +      " • challenges excluded";
+          +
+          +    if(!matches.length){
+          +      const empty=document.createElement("div");
+          +      empty.className="quick-search-empty";
+          +      empty.textContent="No reference sources found.";
+          +      resultsEl.appendChild(empty);
+          +      return;
+          +    }
+          +
+          +    for(const {item} of matches){
+          +      const details=document.createElement("details");
+          +      details.className="quick-search-result";
+          +
+          +      const summary=document.createElement("summary");
+          +      summary.className="quick-search-result-head";
+          +
+          +      const category=document.createElement("span");
+          +      category.className="quick-search-category";
+          +      category.textContent=item.category;
+          +
+          +      const title=document.createElement("span");
+          +      title.className="quick-search-title";
+          +      title.textContent=item.title;
+          +
+          +      summary.append(category,title);
+          +
+          +      const source=document.createElement("pre");
+          +      source.className="quick-search-source";
+          +      source.textContent=item.source || "No source text.";
+          +
+          +      details.append(summary,source);
+          +      resultsEl.appendChild(details);
+          +    }
+          +  }
+          +
+          +  function makeQuickSearch(){
+          +    const widget=document.createElement("div");
+          +    widget.className="quick-search";
+          +
+          +    const toggle=document.createElement("button");
+          +    toggle.type="button";
+          +    toggle.className="quick-search-toggle";
+          +    toggle.setAttribute("aria-expanded","false");
+          +    toggle.textContent="Quick Search";
+          +
+          +    const panel=document.createElement("div");
+          +    panel.className="quick-search-panel";
+          +    panel.hidden=true;
+          +
+          +    const row=document.createElement("div");
+          +    row.className="quick-search-row";
+          +
+          +    const input=document.createElement("input");
+          +    input.type="search";
+          +    input.inputMode="search";
+          +    input.autocomplete="off";
+          +    input.autocapitalize="off";
+          +    input.spellcheck=false;
+          +    input.className="quick-search-input";
+          +    input.placeholder="Search reference…";
+          +    input.setAttribute("aria-label","Quick Search reference");
+          +
+          +    const close=document.createElement("button");
+          +    close.type="button";
+          +    close.className="quick-search-close";
+          +    close.setAttribute("aria-label","Close Quick Search");
+          +    close.textContent="×";
+          +
+          +    const status=document.createElement("div");
+          +    status.className="quick-search-status";
+          +    status.setAttribute("aria-live","polite");
+          +
+          +    const results=document.createElement("div");
+          +    results.className="quick-search-results";
+          +
+          +    row.append(input,close);
+          +    panel.append(row,status,results);
+          +    widget.append(toggle,panel);
+          +
+          +    toggle.addEventListener("click",function(){
+          +      const opening=panel.hidden;
+          +      panel.hidden=!opening;
+          +      toggle.setAttribute("aria-expanded",opening ? "true" : "false");
+          +
+          +      if(opening){
+          +        renderQuickSearch(widget);
+          +        setTimeout(()=>input.focus({preventScroll:true}),0);
+          +      }
+          +    });
+          +
+          +    close.addEventListener("click",function(){
+          +      panel.hidden=true;
+          +      toggle.setAttribute("aria-expanded","false");
+          +      toggle.focus({preventScroll:true});
+          +    });
+          +
+          +    input.addEventListener("input",function(){
+          +      renderQuickSearch(widget);
+          +    });
+          +
+          +    input.addEventListener("keydown",function(e){
+          +      if(e.key==="Escape"){
+          +        e.preventDefault();
+          +        panel.hidden=true;
+          +        toggle.setAttribute("aria-expanded","false");
+          +        toggle.focus({preventScroll:true});
+          +      }
+          +    });
+          +
+          +    return widget;
+          +  }
+          +
+          +  function installQuickSearch(root=document){
+          +    const targets=[];
+          +
+          +    if(root===document){
+          +      document.querySelectorAll(
+          +        ".page-freecode .free-code-card, #challenge-stage .question"
+          +      ).forEach(el=>targets.push(el));
+          +    }else{
+          +      if(root.matches?.(".question")) targets.push(root);
+          +      root.querySelectorAll?.(".question").forEach(el=>targets.push(el));
+          +    }
+          +
+          +    for(const card of targets){
+          +      if(quickSearchInstalled.has(card)) continue;
+          +      quickSearchInstalled.add(card);
+          +
+          +      const widget=makeQuickSearch();
+          +
+          +      // First child means:
+          +      // - Challenge: above qtop/header + prompt + editor.
+          +      // - Free Code: above the editor.
+          +      card.insertBefore(widget,card.firstChild);
+          +    }
+          +  }
+          +
+             function installAllEditorQOL(root=document){
+          +    installQuickSearch(root);
+               installHistoryControls(root);
+               installPlainTextHistory(root);
+               installLineNumbers(root);
+          PATCH
+      - name: Commit v39
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Update Luau Trainer to v39'
+          git push
